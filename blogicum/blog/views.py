@@ -12,11 +12,13 @@ def index(request):
     posts = Post.objects.filter(
         is_published=True,
         pub_date__lte=timezone.now(),
-        category__is_published=True,).order_by('-pub_date')[:5]
+        category__is_published=True,).order_by('-pub_date')
 
-    # Подготавливаем контекст для шаблона
+    paginator = Paginator(posts, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
     context = {
-        'post_list': posts,
+        'page_obj': page_obj,
     }
 
     return render(request, 'blog/index.html', context)
@@ -47,41 +49,66 @@ def post_detail(request, id):
 
 
 def category_posts(request, category_slug):
-    # Получаем категорию по slug
-    category = get_object_or_404(Category, slug=category_slug)
-
-    # Проверяем, что категория опубликована
-    if not category.is_published:
-        raise get_object_or_404(Category, slug=None)
-
-    # Получаем все опубликованные посты из этой категории
-    posts = Post.objects.filter(
+    category = get_object_or_404(
+        Category,
+        slug=category_slug,
+        is_published=True,
+    )
+    post_list = Post.objects.filter(
         category=category,
         is_published=True,
-        pub_date__lte=timezone.now(),).order_by('-pub_date')
+        pub_date__lte=timezone.now(),
+    ).select_related('author', 'category', 'location').order_by('-pub_date')
 
-    # Подготавливаем контекст для шаблона
-    context = {
-        'category': category,
-        'post_list': posts,
-    }
-
-    return render(request, 'blog/category.html', context)
-
-
-def profile(request, username):
-    profile = get_object_or_404(User, username=username)
-    post_list = Post.objects.filter(author=profile).order_by('-pub_date')
-
-    paginator = Paginator(post_list, 10)  # по 10 постов на страницу
+    paginator = Paginator(post_list, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
     context = {
-        'profile': profile,
-        'page_obj': page_obj,
+        'category': category,
+        'page_obj': page_obj
     }
-    return render(request, 'blog/profile.html', context)
+
+    return render(
+        request,
+        'blog/category.html',
+        context
+    )
+
+
+def profile(request, username):
+    profile = get_object_or_404(User, username=username)
+
+    if request.user.is_authenticated and request.user == profile:
+        post_list = Post.objects.filter(author=profile).select_related(
+            'author',
+            'category',
+            'location'
+        ).order_by('-pub_date')
+    else:
+        post_list = Post.objects.filter(
+            author=profile,
+            is_published=True,
+            pub_date__lte=timezone.now(),
+            category__is_published=True,
+        ).select_related(
+            'author',
+            'category',
+            'location'
+        ).order_by('-pub_date')
+
+    paginator = Paginator(post_list, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(
+        request,
+        'blog/profile.html',
+        {
+            'profile': profile,
+            'page_obj': page_obj,
+        }
+    )
 
 
 class ProfileForm(forms.ModelForm):
@@ -129,7 +156,6 @@ def post_create(request):
         if form.is_valid():
             post = form.save(commit=False)
             post.author = request.user
-            # если у модели есть статус/флаг публикации, можно выставлять здесь
             post.save()
             return redirect('blog:profile', username=request.user.username)
     else:
