@@ -18,7 +18,7 @@ from django.urls import path, include
 from django.conf import settings
 from . import views
 
-handler403 = views.page_not_found  # для CSRF использует 403.html
+handler403 = views.page_forbidden  # для CSRF использует 403.html
 handler404 = views.page_not_found
 handler500 = views.server_error
 
@@ -27,6 +27,7 @@ urlpatterns = [
     path('', include('blog.urls', namespace='blog')),
     path('pages/', include('pages.urls', namespace='pages')),
     path('auth/', include('django.contrib.auth.urls')),
+    path('auth/registration/', views.registration, name='registration'),
 ]
 
 if settings.DEBUG:
