@@ -1,4 +1,8 @@
-from django.shortcuts import render, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
+from django import forms
+from django.contrib.auth.models import User
+from django.shortcuts import render, get_object_or_404, redirect
 from django.utils import timezone
 
 from .models import Post, Category
@@ -64,3 +68,36 @@ def category_posts(request, category_slug):
     }
 
     return render(request, 'blog/category.html', context)
+
+
+def profile(request, username):
+    profile = get_object_or_404(User, username=username)
+    post_list = Post.objects.filter(author=profile).order_by('-pub_date')
+
+    paginator = Paginator(post_list, 10)  # по 10 постов на страницу
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        'profile': profile,
+        'page_obj': page_obj,
+    }
+    return render(request, 'blog/profile.html', context)
+
+
+class ProfileForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ['username', 'first_name', 'last_name', 'email']
+
+
+@login_required
+def edit_profile(request):
+    if request.method == 'POST':
+        form = ProfileForm(request.POST, instance=request.user)
+        if form.is_valid():
+            form.save()
+            return redirect('profile', username=request.user.username)
+    else:
+        form = ProfileForm(instance=request.user)
+    return render(request, 'blog/edit_profile.html', {'form': form})

@@ -32,7 +32,7 @@ def registration(request):
         if form.is_valid():
             user = form.save()
             login(request, user)
-            return redirect('blog:index')  # или куда нужно после регистрации
+            return redirect('blog:index')
     else:
         form = UserCreationForm()
     return render(request, 'auth/registration_form.html', {'form': form})
