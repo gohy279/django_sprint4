@@ -1,11 +1,10 @@
+from .models import Post, Category
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django import forms
 from django.contrib.auth.models import User
 from django.shortcuts import render, get_object_or_404, redirect
 from django.utils import timezone
-
-from .models import Post, Category
 
 
 def index(request):
@@ -101,3 +100,38 @@ def edit_profile(request):
     else:
         form = ProfileForm(instance=request.user)
     return render(request, 'blog/edit_profile.html', {'form': form})
+
+
+class PostForm(forms.ModelForm):
+    class Meta:
+        model = Post
+        fields = ['title', 'text', 'category', 'location', 'pub_date']
+        widgets = {
+            'pub_date': forms.DateTimeInput(
+                attrs={
+                    'type': 'datetime-local',
+                },
+                format='%Y-%m-%dT%H:%M',
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['pub_date'].input_formats = ['%Y-%m-%dT%H:%M']
+        self.fields['category'].empty_label = None
+        self.fields['location'].empty_label = None
+
+
+@login_required
+def post_create(request):
+    if request.method == 'POST':
+        form = PostForm(request.POST)
+        if form.is_valid():
+            post = form.save(commit=False)
+            post.author = request.user
+            # если у модели есть статус/флаг публикации, можно выставлять здесь
+            post.save()
+            return redirect('blog:profile', username=request.user.username)
+    else:
+        form = PostForm()
+    return render(request, 'blog/create.html', {'form': form})
