@@ -1,9 +1,89 @@
+from django.db.models import Count
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.views.generic import (
+    CreateView, TemplateView, DetailView, UpdateView
+)
+from django.urls import reverse_lazy
 from django.shortcuts import render
+from django.contrib.auth import get_user_model
+from django.core.paginator import Paginator
+from .forms import (
+    UserEditForm, CustomUserCreationForm
+)
+from blog.models import Post
+
+User = get_user_model()
 
 
-def about(request):
-    return render(request, 'pages/about.html')
+class RulesView(TemplateView):
+    template_name = "pages/rules.html"
 
 
-def rules(request):
-    return render(request, 'pages/rules.html')
+class AboutView(TemplateView):
+    template_name = "pages/about.html"
+
+
+class RegistrationView(CreateView):
+    template_name = "registration/registration_form.html"
+    form_class = CustomUserCreationForm
+    success_url = reverse_lazy("blog:index")
+
+
+class ProfileView(DetailView):
+    template_name = "blog/profile.html"
+    model = User
+    slug_field = "username"
+    slug_url_kwarg = "username"
+    context_object_name = "profile"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        post_list = (
+            Post.objects.filter(author=self.object)
+            .annotate(comment_count=Count("comments"))
+            .order_by("-pub_date")
+        )
+        page_number = self.request.GET.get("page")
+        paginator = Paginator(post_list, 10)
+        page_obj = paginator.get_page(page_number)
+        context["page_obj"] = page_obj
+        return context
+
+
+class ProfileUpdateView(LoginRequiredMixin, UpdateView):
+    template_name = "registration/registration_form.html"
+    model = User
+    form_class = UserEditForm
+
+    def get_object(self, queryset=None):
+        return self.request.user
+
+    def get_success_url(self):
+        context = {"username": self.request.user.username}
+        return reverse_lazy(
+            "profile", kwargs=context
+        )
+
+
+def server_error(request):
+    return render(
+        request,
+        "pages/500.html",
+        status=500
+    )
+
+
+def csrf_failure(request, reason=""):
+    return render(
+        request,
+        "pages/403csrf.html",
+        status=403
+    )
+
+
+def page_not_found(request, exception):
+    return render(
+        request,
+        "pages/404.html",
+        status=404
+    )

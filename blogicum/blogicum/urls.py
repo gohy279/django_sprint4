@@ -13,24 +13,32 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from django.contrib import admin
-from django.urls import path, include
-from django.conf import settings
-from . import views
 
-handler403 = views.page_forbidden  # для CSRF использует 403.html
-handler404 = views.page_not_found
-handler500 = views.server_error
+from django.conf import settings
+from django.conf.urls.static import static
+from django.contrib import admin
+from django.urls import include, path
+from pages.views import ProfileUpdateView, ProfileView, RegistrationView
+
+handler403 = "pages.views.csrf_failure"
+handler404 = "pages.views.page_not_found"
+handler500 = "pages.views.server_error"
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('', include('blog.urls', namespace='blog')),
-    path('pages/', include('pages.urls', namespace='pages')),
-    path('auth/', include('django.contrib.auth.urls')),
-    path('auth/registration/', views.registration, name='registration'),
+    path("", include("blog.urls", namespace="blog")),
+    path("pages/", include("pages.urls", namespace="pages")),
+
+    path("auth/registration/", RegistrationView.as_view(), name="registration"),
+    path("auth/", include("django.contrib.auth.urls")),
+
+    path("profile/edit/", ProfileUpdateView.as_view(), name="edit_profile"),
+    path("profile/<str:username>/", ProfileView.as_view(), name="profile"),
+
+    path("admin/", admin.site.urls),
 ]
 
 if settings.DEBUG:
-    import debug_toolbar
-    # Добавить к списку urlpatterns список адресов из приложения debug_toolbar:
-    urlpatterns += (path('__debug__/', include(debug_toolbar.urls)),)
+    urlpatterns += static(
+        settings.MEDIA_URL,
+        document_root=settings.MEDIA_ROOT
+    )
