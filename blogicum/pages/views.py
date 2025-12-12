@@ -3,7 +3,9 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import (
     CreateView, TemplateView, DetailView, UpdateView
 )
+from django.contrib.auth import logout
 from django.urls import reverse_lazy
+from django.views.generic import View
 from django.shortcuts import render
 from django.contrib.auth import get_user_model
 from django.core.paginator import Paginator
@@ -55,14 +57,19 @@ class ProfileUpdateView(LoginRequiredMixin, UpdateView):
     model = User
     form_class = UserEditForm
 
-    def get_object(self, queryset=None):
-        return self.request.user
 
-    def get_success_url(self):
-        context = {"username": self.request.user.username}
-        return reverse_lazy(
-            "profile", kwargs=context
-        )
+# def logout_view(request):
+#     logout(request)
+#     return redirect_lazy('home')  # Редирект на главную
+#
+#     def get_object(self, queryset=None):
+#         return self.request.user
+#
+#     def get_success_url(self):
+#         context = {"username": self.request.user.username}
+#         return reverse_lazy(
+#             "profile", kwargs=context
+#         )
 
 
 def server_error(request):
@@ -71,6 +78,12 @@ def server_error(request):
         "pages/500.html",
         status=500
     )
+
+
+class LogoutView(LoginRequiredMixin, TemplateView):
+    model = User
+    template_name = "registration/logged_out.html"
+    success_url = reverse_lazy("blog:index")
 
 
 def csrf_failure(request, reason=""):

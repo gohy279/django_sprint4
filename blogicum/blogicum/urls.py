@@ -18,11 +18,13 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
-from pages.views import ProfileUpdateView, ProfileView, RegistrationView
+from pages.views import ProfileUpdateView, ProfileView, RegistrationView, LogoutView
+from django.contrib.auth import logout
 
 handler403 = "pages.views.csrf_failure"
 handler404 = "pages.views.page_not_found"
 handler500 = "pages.views.server_error"
+
 
 urlpatterns = [
     path("", include("blog.urls", namespace="blog")),
@@ -35,7 +37,10 @@ urlpatterns = [
     path("profile/<str:username>/", ProfileView.as_view(), name="profile"),
 
     path("admin/", admin.site.urls),
+
+    path('logout/', LogoutView.as_view(), name='logout'),
 ]
+
 
 if settings.DEBUG:
     urlpatterns += static(
