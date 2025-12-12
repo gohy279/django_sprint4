@@ -137,7 +137,8 @@ class PostUpdateView(LoginRequiredMixin, UpdateView):
 
 class PostDeleteView(LoginRequiredMixin, DeleteView):
     model = Post
-    template_name = "blog/detail.html"
+    form_class = PostForm
+    template_name = "blog/create.html"
 
     def handle_no_permission(self):
         return redirect("blog:post_detail", pk=self.kwargs["pk"])
@@ -151,12 +152,19 @@ class PostDeleteView(LoginRequiredMixin, DeleteView):
             return redirect("blog:post_detail", pk=post.pk)
         return super().dispatch(request, *args, **kwargs)
 
-    def get_success_url(self):
-        context = {"username": self.request.user.username}
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        post = self.object
+        context["form"] = PostForm(instance=post)
+        return context
 
+    def get_success_url(self):
+        context = {
+            "username": self.object.author.username
+        }
         return reverse_lazy(
             "profile",
-            kwargs=context
+            context
         )
 
 
