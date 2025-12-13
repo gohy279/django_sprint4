@@ -60,7 +60,7 @@ class ProfileUpdateView(LoginRequiredMixin, UpdateView):
 
 # def logout_view(request):
 #     logout(request)
-#     return redirect_lazy('home')  # Редирект на главную
+#     return redirect_lazy('home')
 #
 #     def get_object(self, queryset=None):
 #         return self.request.user
@@ -80,10 +80,12 @@ def server_error(request):
     )
 
 
-class LogoutView(LoginRequiredMixin, TemplateView):
-    model = User
+class LogoutView(TemplateView):
     template_name = "registration/logged_out.html"
-    success_url = reverse_lazy("blog:index")
+
+    def dispatch(self, request, *args, **kwargs):
+        logout(request)
+        return super().dispatch(request, *args, **kwargs)
 
 
 def csrf_failure(request, reason=""):
