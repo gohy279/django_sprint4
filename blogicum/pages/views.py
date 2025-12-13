@@ -53,23 +53,33 @@ class ProfileView(DetailView):
 
 
 class ProfileUpdateView(LoginRequiredMixin, UpdateView):
-    template_name = "registration/registration_form.html"
     model = User
     form_class = UserEditForm
+    template_name = "blog/user.html"
 
+    def get_object(self, queryset=None):
+        return self.request.user
 
-# def logout_view(request):
-#     logout(request)
-#     return redirect_lazy('home')
-#
-#     def get_object(self, queryset=None):
-#         return self.request.user
-#
-#     def get_success_url(self):
-#         context = {"username": self.request.user.username}
-#         return reverse_lazy(
-#             "profile", kwargs=context
-#         )
+    def get_success_url(self):
+        context = {"username": self.request.user.username}
+
+        return reverse_lazy(
+            "profile",
+            kwargs=context,
+        )
+
+    # def logout_view(request):
+    #     logout(request)
+    #     return redirect_lazy('home')
+    #
+    #     def get_object(self, queryset=None):
+    #         return self.request.user
+    #
+    #     def get_success_url(self):
+    #         context = {"username": self.request.user.username}
+    #         return reverse_lazy(
+    #             "profile", kwargs=context
+    #         )
 
 
 def server_error(request):
