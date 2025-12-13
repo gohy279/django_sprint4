@@ -18,6 +18,6 @@ urlpatterns = [
     path("posts/<int:post_pk>/delete_comment/<int:pk>/",
          views.CommentDeleteView.as_view(), name="delete_comment",),
 
-    path("category/<slug:category_slug>/",
+    path("category/<slug:slug>/",
          views.CategoryPostsView.as_view(), name="category_posts",),
 ]

@@ -72,7 +72,7 @@ class CategoryPostsView(ListView):
     def get_queryset(self):
         self.category = get_object_or_404(
             Category,
-            slug=self.kwargs["category_slug"],
+            slug=self.kwargs["slug"],
             is_published=True
         )
         return (
