@@ -37,6 +37,7 @@ class IndexView(ListView):
 class PostDetailView(DetailView):
     model = Post
     template_name = "blog/detail.html"
+    pk_url_kwarg = "post_id"
 
     def get_queryset(self):
         if self.request.user.is_authenticated:
@@ -102,53 +103,45 @@ class PostCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
     def get_success_url(self):
-        context = {"username": self.request.user.username}
-
-        return reverse_lazy(
-            "profile",
-            kwargs=context
-        )
+        return reverse_lazy("profile", kwargs={"username": self.request.user.username})
 
 
 class PostUpdateView(LoginRequiredMixin, UpdateView):
     model = Post
     form_class = PostForm
     template_name = "blog/create.html"
+    pk_url_kwarg = "post_id"
 
     def handle_no_permission(self):
-        return redirect("blog:post_detail", pk=self.kwargs["pk"])
+        return redirect("blog:post_detail", post_id=self.kwargs["post_id"])
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return self.handle_no_permission()
-
         post = self.get_object()
         if post.author != request.user:
-            return redirect("blog:post_detail", pk=post.pk)
+            return redirect("blog:post_detail", post_id=post.pk)
         return super().dispatch(request, *args, **kwargs)
 
     def get_success_url(self):
-        context = {"pk": self.object.pk}
-        return reverse_lazy(
-            "blog:post_detail",
-            kwargs=context
-        )
+        context = {"post_id": self.object.pk}
+        return reverse_lazy("blog:post_detail", kwargs=context)
 
 
 class PostDeleteView(LoginRequiredMixin, DeleteView):
     model = Post
     template_name = "blog/create.html"
+    pk_url_kwarg = "post_id"
 
     def handle_no_permission(self):
-        return redirect("blog:post_detail", pk=self.kwargs["pk"])
+        return redirect("blog:post_detail", post_id=self.kwargs["post_id"])
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return self.handle_no_permission()
-
         post = self.get_object()
         if post.author != request.user:
-            return redirect("blog:post_detail", pk=post.pk)
+            return redirect("blog:post_detail", post_id=post.pk)
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
@@ -158,10 +151,8 @@ class PostDeleteView(LoginRequiredMixin, DeleteView):
         return context
 
     def get_success_url(self):
-        return reverse_lazy(
-            "profile",
-            kwargs={"username": self.object.author.username},
-        )
+        context = {"username": self.object.author.username}
+        return reverse_lazy("profile", kwargs=context)
 
 
 class CommentCreateView(LoginRequiredMixin, CreateView):
@@ -170,24 +161,23 @@ class CommentCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         form.instance.author = self.request.user
-        form.instance.post = get_object_or_404(Post, pk=self.kwargs["pk"])
+        form.instance.post = get_object_or_404(Post, pk=self.kwargs["post_id"])
         return super().form_valid(form)
 
     def get_success_url(self):
-        context = {"pk": self.kwargs["pk"]}
-        return reverse_lazy(
-            "blog:post_detail",
-            kwargs=context
-        )
+        context = {"post_id": self.kwargs["post_id"]}
+        return reverse_lazy("blog:post_detail", kwargs=context)
 
 
 class CommentUpdateView(LoginRequiredMixin, UpdateView):
     model = Comment
     form_class = CommentForm
     template_name = "blog/comment.html"
+    pk_url_kwarg = "comment_id"
 
     def get_queryset(self):
-        return Comment.objects.filter(author=self.request.user)
+        post = get_object_or_404(Post, pk=self.kwargs["post_id"])
+        return Comment.objects.filter(author=self.request.user, post=post)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -195,19 +185,18 @@ class CommentUpdateView(LoginRequiredMixin, UpdateView):
         return context
 
     def get_success_url(self):
-        context = {"pk": self.object.post.pk}
-        return reverse_lazy(
-            "blog:post_detail",
-            kwargs=context,
-        )
+        context = {"post_id": self.object.post.pk}
+        return reverse_lazy("blog:post_detail", kwargs=context)
 
 
 class CommentDeleteView(LoginRequiredMixin, DeleteView):
     model = Comment
     template_name = "blog/comment.html"
+    pk_url_kwarg = "comment_id"
 
     def get_queryset(self):
-        return Comment.objects.filter(author=self.request.user)
+        post = get_object_or_404(Post, pk=self.kwargs["post_id"])
+        return Comment.objects.filter(author=self.request.user, post=post)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -216,8 +205,5 @@ class CommentDeleteView(LoginRequiredMixin, DeleteView):
         return context
 
     def get_success_url(self):
-        context = {"pk": self.object.post.pk}
-        return reverse_lazy(
-            "blog:post_detail",
-            kwargs=context,
-        )
+        context = {"post_id": self.object.post.pk}
+        return reverse_lazy("blog:post_detail", kwargs=context)
