@@ -5,7 +5,6 @@ from django.views.generic import (
 )
 from django.contrib.auth import logout
 from django.urls import reverse_lazy
-from django.views.generic import View
 from django.shortcuts import render
 from django.contrib.auth import get_user_model
 from django.core.paginator import Paginator
@@ -13,6 +12,8 @@ from .forms import (
     UserEditForm, CustomUserCreationForm
 )
 from blog.models import Post
+
+from utils import paginate_queryset, get_comments
 
 User = get_user_model()
 
@@ -40,15 +41,8 @@ class ProfileView(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        post_list = (
-            Post.objects.filter(author=self.object)
-            .annotate(comment_count=Count("comments"))
-            .order_by("-pub_date")
-        )
-        page_number = self.request.GET.get("page")
-        paginator = Paginator(post_list, 10)
-        page_obj = paginator.get_page(page_number)
-        context["page_obj"] = page_obj
+        post_list = get_comments(Post.objects.filter(author=self.object))
+        context["page_obj"] = paginate_queryset(self.request, post_list)
         return context
 
 
