@@ -34,14 +34,11 @@ class PostDetailView(DetailView):
 
     def get_queryset(self):
         if self.request.user.is_authenticated:
-            return Post.objects.filter(
-                Q(
-                    is_published=True,
-                    pub_date__lte=timezone.now(),
-                    category__is_published=True,
-                )
-                | Q(author=self.request.user)
-            ).distinct()
+
+            published = get_public_posts(Post.objects)
+            own = Post.objects.filter(author=self.request.user)
+            return (published | own).distinct()
+
         return Post.objects.filter(
             is_published=True,
             category__is_published=True,
@@ -70,14 +67,11 @@ class CategoryPostsView(ListView):
             is_published=True
         )
         return (
-            Post.objects.filter(
+            get_comments(Post.objects.filter(
                 is_published=True,
                 category=self.category,
                 pub_date__lte=timezone.now(),
-            )
-            .select_related("author")
-            .annotate(comment_count=Count("comments"))
-            .order_by("-pub_date")
+            ))
         )
 
     def get_context_data(self, **kwargs):
