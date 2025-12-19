@@ -14,6 +14,8 @@ from django.views.generic import (
 from .forms import CommentForm, PostForm
 from .models import Category, Comment, Post
 
+from utils import get_public_posts, get_comments
+
 
 class IndexView(ListView):
     model = Post
@@ -22,16 +24,7 @@ class IndexView(ListView):
     paginate_by = 10
 
     def get_queryset(self):
-        return (
-            Post.objects.filter(
-                is_published=True,
-                pub_date__lte=timezone.now(),
-                category__is_published=True,
-            )
-            .select_related("category", "author")
-            .annotate(comment_count=Count("comments"))
-            .order_by("-pub_date")
-        )
+        return get_comments(get_public_posts(Post.objects))
 
 
 class PostDetailView(DetailView):
